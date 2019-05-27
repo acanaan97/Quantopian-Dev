@@ -1,0 +1,27 @@
+#Importing research environment functions
+from quantopian.research import prices, symbols
+
+#Importing PandaSeries
+import pandas as pd
+
+#Query for historical pricing data of Facebook
+xom_close = prices(
+    assets=symbols('XOM'),
+    start='2016-01-01',
+    end='2019-01-01',
+)
+
+#Compute 50 day SMA and 200 day SMA
+xom_sma50 = xom_close.rolling(50).mean()
+xom_sma200 = xom_close.rolling(200).mean()
+xom_sma100 = xom_close.rolling(100).mean()
+
+#Import results into a Pandas DataFrame for plotting
+pd.DataFrame({
+    'XOM': xom_close,
+    'SMA50': xom_sma50,
+    'SMA200': xom_sma200,
+    'SMA100': xom_sma100,
+}).plot(
+    title='Exxon Mobil Closing Price with SMA Crossovers'
+);
