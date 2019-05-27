@@ -1,0 +1,25 @@
+#Importing research environment functions
+from quantopian.research import prices, symbols
+
+#Importing PandaSeries
+import pandas as pd
+
+#Query for historical pricing data of Facebook
+nflx_close = prices(
+    assets=symbols('NFLX'),
+    start='2016-01-01',
+    end='2019-01-01',
+)
+
+#Compute 50 day SMA and 200 day SMA
+nflx_sma50 = aapl_close.rolling(50).mean()
+nflx_sma200 = aapl_close.rolling(200).mean()
+
+#Import results into a Pandas DataFrame for plotting
+pd.DataFrame({
+    'NFLX': nflx_close,
+    'SMA50': nflx_sma50,
+    'SMA200': nflx_sma200,
+}).plot(
+    title='NFLX Closing Price with SMA Crossovers'
+);
