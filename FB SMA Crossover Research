@@ -1,0 +1,32 @@
+# In order to execute this code, copy and paste it into a Research Notebook on Quantopian's website
+# https://www.quantopian.com/research/notebooks/
+# Note: You may need to create an account, which is quick and free!
+
+
+#Importing research environment functions
+from quantopian.research import prices, symbols
+
+#Importing PandaSeries
+import pandas as pd
+
+#Query for historical pricing data of Facebook
+fb_close = prices(
+    assets=symbols('FB'),
+    start='2016-01-01',
+    end='2019-01-01',
+)
+
+#Compute 50 day SMA and 200 day SMA
+fb_sma50 = fb_close.rolling(50).mean()
+fb_sma200 = fb_close.rolling(200).mean()
+
+#Import results into a Pandas DataFrame for plotting
+pd.DataFrame({
+    'FB': fb_close,
+    'SMA50': fb_sma50,
+    'SMA200': fb_sma200,
+}).plot(
+    title='FB Closing Price with SMA Crossovers'
+);
+
+
