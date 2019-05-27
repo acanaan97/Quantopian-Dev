@@ -1,0 +1,25 @@
+#Importing research environment functions
+from quantopian.research import prices, symbols
+
+#Importing PandaSeries
+import pandas as pd
+
+#Query for historical pricing data of Facebook
+aapl_close = prices(
+    assets=symbols('AAPL'),
+    start='2016-01-01',
+    end='2019-01-01',
+)
+
+#Compute 50 day SMA and 200 day SMA
+aapl_sma50 = aapl_close.rolling(50).mean()
+aapl_sma200 = aapl_close.rolling(200).mean()
+
+#Import results into a Pandas DataFrame for plotting
+pd.DataFrame({
+    'AAPL': aapl_close,
+    'SMA50': aapl_sma50,
+    'SMA200': aapl_sma200,
+}).plot(
+    title='AAPL Closing Price with SMA Crossovers'
+);
