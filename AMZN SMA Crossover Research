@@ -1,0 +1,25 @@
+#Importing research environment functions
+from quantopian.research import prices, symbols
+
+#Importing PandaSeries
+import pandas as pd
+
+#Query for historical pricing data of Facebook
+amzn_close = prices(
+    assets=symbols('AMZN'),
+    start='2016-01-01',
+    end='2019-01-01',
+)
+
+#Compute 50 day SMA and 200 day SMA
+amzn_sma50 = amzn_close.rolling(50).mean()
+amzn_sma200 = amzn_close.rolling(200).mean()
+
+#Import results into a Pandas DataFrame for plotting
+pd.DataFrame({
+    'AAPL': amzn_close,
+    'SMA50': amzn_sma50,
+    'SMA200': amzn_sma200,
+}).plot(
+    title='AMZN Closing Price with SMA Crossovers'
+);
