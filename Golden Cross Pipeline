@@ -1,0 +1,93 @@
+# In finance, the Golden Cross is described as when the price (or another SMA) rises above the Simple Moving Average.
+# Generally, this statistic foreshadows potential gain, and is seen as a buying opportunity.
+# If the price (or another SMA) falls below a given Simple Moving Average, it foreshadows a decline in price, and is a selling opportunity.
+# The following is a pipeline constructed to show securities that have a solid volume (10,000,000+ units) and also shows whether or not - 
+# they demonstrate the potential of being a Golden Cross.
+
+# Note: You may put all of this code into a single cell, or split it up into multiple cells as I will denote (for readability).
+
+# ---------- Cell #1 ----------
+
+# Start by importing the Pipeline
+from quantopian.pipeline import Pipeline
+# Also, import the list of US Equities and their prices
+# Also, import the built in factor 'SimpleMovingAverage'
+from quantopian.pipeline.data.builtin import USEquityPricing
+from quantopian.pipeline.factors import SimpleMovingAverage
+from quantopian.pipeline.factors import DailyReturns
+from quantopian.pipeline.factors import AverageDollarVolume, SimpleMovingAverage
+
+
+# ---------- Cell #2 ----------
+
+# In this cell, we will define our function to create our Pipeline
+def make_pipeline():
+    
+#     mean_close10 = SimpleMovingAverage(
+#         inputs=[USEquityPricing.close],
+#         window_length=10
+#     )
+    
+#     mean_close30 = SimpleMovingAverage(
+#         inputs=[USEquityPricing.close],
+#         window_length=30
+#     )
+    
+    dollar_volume = AverageDollarVolume(window_length=30)
+    high_dollar_vol = dollar_volume.percentile_between(90,100)
+    low_dollar_vol = ~high_dollar_vol
+    
+    mean_close50 = SimpleMovingAverage(
+        inputs=[USEquityPricing.close],
+        window_length=50
+    )
+    
+    latest_close = USEquityPricing.close.latest
+    mean_crossover_filter = mean_close50 > latest_close
+   # close_above_20 = latest_close > 20
+    is_tradeable = high_dollar_vol
+   # top_close_price_filter = last_close.top(50) 
+   # price_crossover_filter = mean_close50 < latest_close
+   # pct_diff = (mean_close10 - mean_close30) / mean_close30
+    daily_retrn = DailyReturns()
+    
+    return Pipeline(
+        columns={
+            'Golden Cross - Buy': mean_crossover_filter,
+            'Day Percent Loss/Gain': daily_retrn
+           # 'Percent_Difference': pct_diff,
+           # 'High_Dollar_Volume': high_dollar_vol
+           # '10_day_mean_close': mean_close10,
+           # '30_day_mean_close': mean_close30,
+           # 'latest_price_close': latest_close,
+           # 'daily_return_pct': daily_retrn,
+        },
+        screen=is_tradeable
+    )
+    
+    
+    # ---------- Cell #3 ----------
+    
+    # Let us instantiate our Pipeline by running make_pipeline
+    my_pipe = make_pipeline()
+    
+    
+    # ---------- Cell #4 ----------
+    
+    # We must import the run_pipeline class to run our new pipeline
+    from quantopian.research import run_pipeline
+    
+    
+    # ---------- Cell #5 ----------
+    
+    # run_pipeline(Pipeline obj, start date, end date)
+    result = run_pipeline(my_pipe, '2019-05-27', '2019-05-27')
+    print 'Number of securities that passed the filter: %d' % len(result)
+    result.head(15)
+    
+    
+    
+    
+    
+    
+    
