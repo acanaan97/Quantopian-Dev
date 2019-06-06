@@ -1,0 +1,25 @@
+#Importing research environment functions
+from quantopian.research import prices, symbols
+
+#Importing PandaSeries
+import pandas as pd
+
+#Query for historical pricing data of Facebook
+spy_close = prices(
+    assets=symbols('SPY'),
+    start='2018-01-01',
+    end='2019-01-01',
+)
+
+#Compute 50 day SMA and 200 day SMA
+spy_sma50 = spy_close.rolling(50).mean()
+spy_sma200 = spy_close.rolling(200).mean()
+
+#Import results into a Pandas DataFrame for plotting
+pd.DataFrame({
+    'spy': spy_close,
+    'SMA50': spy_sma50,
+    'SMA200': spy_sma200,
+}).plot(
+    title='SPY Closing Prices with SMA Crossovers'
+);
