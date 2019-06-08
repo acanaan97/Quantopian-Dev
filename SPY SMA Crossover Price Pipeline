@@ -1,0 +1,37 @@
+from quantopian.pipeline.factors import SimpleMovingAverage
+from quantopian.pipeline.data.builtin import USEquityPricing
+# from quantopian.pipeline.factors import CustomFactor
+# from quantopian.pipeline import CustomFilter
+from quantopian.pipeline.filters import StaticAssets
+from quantopian.pipeline import Pipeline
+from quantopian.research import run_pipeline
+from quantopian.pipeline.data import Fundamentals
+
+
+def make_pipeline():
+
+    # Base universe set to a single stock. In this case AAPL.  
+    base_universe  = StaticAssets([symbols('SPY')])  
+
+    mean_close_50 = SimpleMovingAverage(
+        inputs=[USEquityPricing.close], 
+        window_length=50, 
+        mask = base_universe
+    )  
+    # Factor of yesterday's close price.  
+    yesterday_close = USEquityPricing.close.latest  
+    pipe = Pipeline(  
+        screen = base_universe,  
+        columns = {  
+            'close': yesterday_close,  
+            '50_day_sma': mean_close_50,  
+            'Buy - Golden Cross': yesterday_close > mean_close_50,  
+            'Sell - Death Cross': yesterday_close < mean_close_50  
+        }  
+    )  
+    return pipe
+    
+    
+my_pipe = make_pipeline()
+result = run_pipeline(my_pipe, '2018-01-01', '2019-01-01')
+result.head(15)
