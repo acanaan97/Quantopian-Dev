@@ -1,0 +1,137 @@
+from quantopian.algorithm import attach_pipeline, pipeline_output
+from quantopian.pipeline import Pipeline
+import quantopian.pipeline.filters as Filters
+import quantopian.pipeline.factors as Factors
+import pandas as pd
+import numpy as np
+from quantopian.pipeline.data.builtin import USEquityPricing
+from quantopian.pipeline.factors import CustomFactor
+ 
+WEIGHT1=0.20
+WEIGHT2=0.30
+WEIGHT3=0.30
+WEIGHT4=0.10
+            
+ 
+def initialize(context):
+ 
+# Consumer Discretionary Select Sector SPDR ETF (TICKER: XLY)
+# Consumer Staples Select Sector SPDR ETF (TICKER: XLP)
+# Energy Select Sector SPDR ETF (TICKER: XLE)
+# Financials Select Sector SPDR ETF (TICKER: XLF)
+# Health Care Select Sector SPDR ETF (TICKER: XLV)
+# Industrials Select Sector SPDR ETF (TICKER: XLI)
+# Materials Select Sector SPDR ETF (TICKER: XLB)
+# Technology Select Sector SPDR ETF (TICKER: XLK)
+# Utilities Select Sector SPDR ETF (TICKER: XLU)
+ 
+    context.spy = sid(8554)
+    context.shy = sid(23921)
+    context.stock= [sid(19659), #XLP
+                   sid(19662), #XLY
+                   sid(19655), #XLE
+                   sid(19656), #XLF
+                   sid(19661), #XLV
+                   sid(19657), #XLI
+                   sid(19654), #XLB
+                   sid(19658), #XLK
+                   sid(19660)] #XLU
+    # Rebalance every day, 1 hour after market open.
+    schedule_function(rebalance, date_rules.month_start(), time_rules.market_open(hours=1))
+    schedule_function(close, date_rules.month_start(), time_rules.market_open())  
+    # Record tracking variables at the end of each day.
+    schedule_function(count_positions, date_rules.every_day(), time_rules.market_close())
+    # schedule_function(trail_stop,date_rules.every_day(),time_rules.market_open())
+    # Create our dynamic stock selector.
+    attach_pipeline(make_pipeline(context), 'myPipe')
+         
+def make_pipeline(context):
+    
+    universe=Filters.StaticAssets(context.stock)
+    
+    # Factor of yesterday's close price.
+    day20_ret=Factors.Returns(inputs=[USEquityPricing.close], window_length=21, mask=universe)
+    day3mo_ret=Factors.Returns(inputs=[USEquityPricing.close], window_length=63, mask=universe)
+        
+    day6mo_ret=Factors.Returns(inputs=[USEquityPricing.close], window_length=126,mask=universe)
+    day1yr_ret=Factors.Returns(inputs=[USEquityPricing.close], window_length=252, mask=universe)
+ 
+    volatility=Factors.AnnualizedVolatility(mask=universe)
+
+    # day360_ret=Factors.Returns(inputs=[USEquityPricing.close], window_length=252, mask=universe) 
+    day20_rank=day20_ret.rank(ascending=False)
+    day3mo_rank=day3mo_ret.rank(ascending=False)
+    day6mo_rank=day6mo_ret.rank(ascending=False)
+    day1yr_rank=day1yr_ret.rank(ascending=False)
+    vol_rank=volatility.rank(ascending=True)   
+    # day20_rank=day20_ret.rank()
+    # day3mo_rank=day3mo_ret.rank()
+    # day6mo_rank=day6mo_ret.rank()
+    # day1yr_rank=day1yr_ret.rank()
+    # vol_rank=volatility.rank() 
+    
+    score=(WEIGHT1*day3mo_rank)+(WEIGHT2*vol_rank)+(WEIGHT2*day20_rank)+(WEIGHT4*day6mo_rank)+(WEIGHT4*day1yr_rank)
+    
+    #.20x3mo + .30xvol + .30x20day + 0.1x6mo + .1x1yr
+    # score_rank=score.rank(ascending=False)
+    score_rank=score.rank()
+ 
+    best=(score_rank<=3) 
+    pipe = Pipeline(
+        columns = {
+            'Score': score,
+            "Score_Rank" : score_rank,
+        },
+        screen = (best)
+    )
+    return pipe
+   
+ 
+def before_trading_start(context, data):
+    """
+    Called every day before market open.
+    """
+    
+    context.output = pipeline_output('myPipe')
+    
+    # These are the securities that we are interested in trading each day.
+    # print(context.output)
+    
+    context.longs = context.output.index.tolist()  
+    
+#My Friend Blue helped me restructure the weight so I did not double leverage on Safety Months
+ 
+def close(context,data):  
+    for stock in context.portfolio.positions:  
+        if not data.can_trade(stock): 
+            continue  
+        order_target(stock, 0)  
+        log.info("Sell" + str(stock))
+ 
+def rebalance(context,data):  
+    # weight = context.output.score/context.output.score.sum()  
+    # print "score: {}    Weight: {}".format(context.output.score, weight)  
+    # leverage=1.0  
+    spy_200=data.history(context.spy, "price", 200, "1d")  
+    spy_mavg=spy_200.mean()  
+    spy_price=data.current(context.spy, "price")  
+    if data.can_trade(context.shy) and spy_price<spy_mavg:  
+        # Do a check to make sure no positions before this 1.0 all-in  
+        order_target_percent(context.shy, 1.0)  
+        log.info("Safety Month")  
+        return
+ 
+    for stock in context.longs:  
+        if not data.can_trade(stock): 
+            continue  
+        if get_open_orders(stock):    
+            continue  
+        order_target_percent(stock, 1.0 / len(context.longs))  
+        #order_target_value(stock, context.portfolio.cash / len(context.longs))  
+        log.info("Buy" + str(stock))  
+ 
+                
+def count_positions(context,data):
+        
+    leverage=context.account.leverage
+    record(leverage=leverage)
